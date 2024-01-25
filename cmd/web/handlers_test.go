@@ -48,6 +48,7 @@ func TestAppHome(t *testing.T) {
 		name         string
 		putInSession string
 		expectedHTML string
+		shouldFail   bool // flag to fail and pass
 	}{
 		{name: "firstVisit", putInSession: "", expectedHTML: "<small>From session:"},
 		{name: "secondvisit", putInSession: "hello world!", expectedHTML: "<small>From session: hello world!"},
