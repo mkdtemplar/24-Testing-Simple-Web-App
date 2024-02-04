@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"24-Testing-Simple-Web-App/pkg/data"
 	"html/template"
 	"log"
 	"net/http"
@@ -10,8 +10,11 @@ import (
 )
 
 type TemplateData struct {
-	IP   string
-	Data map[string]any
+	IP    string
+	Data  map[string]any
+	Error string
+	Flash string
+	User  data.User
 }
 
 var pathToTemplates = "./templates/"
@@ -26,6 +29,11 @@ func (a *application) Home(w http.ResponseWriter, r *http.Request) {
 		a.Session.Put(r.Context(), "test", "Hit this page at "+time.Now().UTC().String())
 	}
 	_ = a.render(w, r, "home.page.gohtml", &TemplateData{Data: td})
+}
+
+func (a *application) Profile(w http.ResponseWriter, r *http.Request) {
+
+	_ = a.render(w, r, "profile.page.gohtml", &TemplateData{})
 }
 
 func (a *application) Login(w http.ResponseWriter, r *http.Request) {
@@ -51,18 +59,26 @@ func (a *application) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := a.DB.GetUserByEmail(email)
 	if err != nil {
-		log.Println(err)
-	}
-
-	log.Println("From database: ", user.FirstName)
-	log.Println(email, password)
-	_, err = fmt.Fprintf(w, email)
-	if err != nil {
+		a.Session.Put(r.Context(), "error", "Invalid login")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
+	log.Println(password, user.FirstName)
+
+	// authenticate the user, if not redirect with error
+
+	// prevent fixation attack
+	_ = a.Session.RenewToken(r.Context())
+
+	// store success message in session
+
+	// redirect to some other page
+	a.Session.Put(r.Context(), "flash", "Successfully logged in!")
+	http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
 }
 
-func (a *application) render(w http.ResponseWriter, r *http.Request, t string, data *TemplateData) error {
+func (a *application) render(w http.ResponseWriter, r *http.Request, t string, td *TemplateData) error {
 	// parse template from disk
 	parsedTemplate, err := template.ParseFiles(path.Join(pathToTemplates, t), path.Join(pathToTemplates, "base.layout.gohtml"))
 	if err != nil {
@@ -70,10 +86,12 @@ func (a *application) render(w http.ResponseWriter, r *http.Request, t string, d
 		return err
 	}
 
-	data.IP = a.ipFromContext(r.Context())
+	td.IP = a.ipFromContext(r.Context())
+	td.Error = a.Session.PopString(r.Context(), "error")
+	td.Flash = a.Session.PopString(r.Context(), "flash")
 
 	//execute template, passing data if any
-	err = parsedTemplate.Execute(w, data)
+	err = parsedTemplate.Execute(w, td)
 	if err != nil {
 		return err
 	}
