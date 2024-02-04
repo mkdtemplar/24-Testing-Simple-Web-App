@@ -11,6 +11,22 @@
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     </head>
     <body>
+    <div class="container">
+        <div class="row">
+            <div class="container">
+                {{with .Flash}}
+                    <div class="mt-3 alert alert-success" role="alert">
+                        {{.}}
+                    </div>
+                    {{end}}
+                {{with .Error}}
+                    <div class="mt-3 alert alert-danger" role="alert">
+                        {{.}}
+                    </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
 
     {{block "content" .}}
 

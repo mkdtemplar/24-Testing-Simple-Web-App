@@ -64,14 +64,15 @@ func (a *application) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(password, user.FirstName)
-
 	// authenticate the user, if not redirect with error
+	if !a.authenticate(r, user, password) {
+		a.Session.Put(r.Context(), "error", "Invalid login")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	// prevent fixation attack
 	_ = a.Session.RenewToken(r.Context())
-
-	// store success message in session
 
 	// redirect to some other page
 	a.Session.Put(r.Context(), "flash", "Successfully logged in!")
@@ -96,4 +97,13 @@ func (a *application) render(w http.ResponseWriter, r *http.Request, t string, t
 		return err
 	}
 	return nil
+}
+
+func (a *application) authenticate(r *http.Request, user *data.User, password string) bool {
+	if valid, err := user.PasswordMatches(password); err != nil || !valid {
+		return false
+	}
+
+	a.Session.Put(r.Context(), "user", user)
+	return true
 }

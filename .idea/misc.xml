@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="GOROOT" url="file:///usr/local/go" />
-  <component name="GithubDefaultAccount">
-    <option name="defaultAccountId" value="77313003-e011-4bd5-b71e-fc06e347a338" />
-  </component>
 </project>

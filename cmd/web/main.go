@@ -1,8 +1,10 @@
 package main
 
 import (
+	"24-Testing-Simple-Web-App/pkg/data"
 	"24-Testing-Simple-Web-App/pkg/db"
 	"database/sql"
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +20,7 @@ type application struct {
 }
 
 func main() {
+	gob.Register(data.User{})
 	// Set up application configuration
 	app := application{}
 
