@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -105,4 +106,84 @@ func addContextAndSessionToRequest(req *http.Request, app application) *http.Req
 	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
 
 	return req.WithContext(ctx)
+}
+
+func Test_application_Login(t *testing.T) {
+	type fields struct {
+		postedData         url.Values
+		expectedStatusCode int
+		expectedLoc        string
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			name: "Valid login",
+			fields: fields{
+				postedData: url.Values{
+					"email":    {"admin@example.com"},
+					"password": {"secret"},
+				},
+				expectedStatusCode: http.StatusSeeOther,
+				expectedLoc:        "/user/profile",
+			},
+		},
+		{
+			name: "Missing form data",
+			fields: fields{
+				postedData: url.Values{
+					"email":    {""},
+					"password": {""},
+				},
+				expectedStatusCode: http.StatusSeeOther,
+				expectedLoc:        "/",
+			},
+		},
+		{
+			name: "User not found",
+			fields: fields{
+				postedData: url.Values{
+					"email":    {"you@mail.com"},
+					"password": {"password"},
+				},
+				expectedStatusCode: http.StatusSeeOther,
+				expectedLoc:        "/",
+			},
+		},
+		{
+			name: "Bad credentials",
+			fields: fields{
+				postedData: url.Values{
+					"email":    {"admin@example.com"},
+					"password": {"password"},
+				},
+				expectedStatusCode: http.StatusSeeOther,
+				expectedLoc:        "/",
+			},
+		},
+	}
+	for _, tt := range tests {
+		req := httptest.NewRequest("POST", "/login", strings.NewReader(tt.fields.postedData.Encode()))
+		req = addContextAndSessionToRequest(req, app)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+		handler := http.HandlerFunc(app.Login)
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != tt.fields.expectedStatusCode {
+			t.Errorf("%s returned %d, but expected %d", tt.name, rr.Code, tt.fields.expectedStatusCode)
+		}
+
+		actualLoc, err := rr.Result().Location()
+		if err == nil {
+			if actualLoc.String() != tt.fields.expectedLoc {
+				t.Errorf("%s: failed expected location is %s, but got %s", tt.name, actualLoc, tt.fields.expectedLoc)
+			}
+		} else {
+			t.Errorf("%s: No location header set", tt.name)
+		}
+
+	}
 }
