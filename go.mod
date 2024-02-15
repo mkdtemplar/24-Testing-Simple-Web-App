@@ -1,6 +1,6 @@
 module 24-Testing-Simple-Web-App
 
-go 1.21
+go 1.22
 
 require (
 	github.com/alexedwards/scs/v2 v2.7.0
