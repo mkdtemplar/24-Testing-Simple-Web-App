@@ -1,6 +1,7 @@
 package main
 
 import (
+	"24-Testing-Simple-Web-App/pkg/data"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -67,5 +68,44 @@ func Test_application_ipFromContext(t *testing.T) {
 	ip := app.ipFromContext(ctx)
 	if !strings.EqualFold("whatever", ip) {
 		t.Error("Wrong value returned from context")
+	}
+}
+
+func Test_application_auth(t *testing.T) {
+	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	})
+
+	var tests = []struct {
+		name   string
+		isAuth bool
+	}{
+		{
+			name:   "Logged in",
+			isAuth: true,
+		},
+		{
+			name:   "Not logged in",
+			isAuth: false,
+		},
+	}
+
+	for _, e := range tests {
+		handlerToTest := app.auth(nextHandler)
+		reg := httptest.NewRequest("GET", "http://testing", nil)
+		reg = addContextAndSessionToRequest(reg, app)
+		if e.isAuth {
+			app.Session.Put(reg.Context(), "user", data.User{ID: 1})
+		}
+
+		resp := httptest.NewRecorder()
+		handlerToTest.ServeHTTP(resp, reg)
+		if e.isAuth && resp.Code != http.StatusOK {
+			t.Errorf("%s: failed expected 200 but got %d", e.name, resp.Code)
+		}
+
+		if !e.isAuth && resp.Code != http.StatusTemporaryRedirect {
+			t.Errorf("%s: failed expected 307 but got %d", e.name, resp.Code)
+		}
 	}
 }
