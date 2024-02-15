@@ -23,3 +23,6 @@ create table if not exists user_images
     updated_at timestamp
 );
 
+INSERT INTO users(first_name, last_name, email, password, is_admin, created_at, updated_at) VALUES
+            ('Admin','User', 'admin@example.com', '$2a$14$ajq8Q7fbtFRQvXpdCq7Jcuy.Rx1h/L4J60Otx.gyNLbAYctGMJ9tK',
+             1, '2022-08-19 00:00:00.000000', '2022-08-19 00:00:00.000000')
