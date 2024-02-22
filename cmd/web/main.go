@@ -2,7 +2,8 @@ package main
 
 import (
 	"24-Testing-Simple-Web-App/pkg/data"
-	"24-Testing-Simple-Web-App/pkg/db"
+	"24-Testing-Simple-Web-App/pkg/repository"
+	"24-Testing-Simple-Web-App/pkg/repository/dbrepo"
 	"database/sql"
 	"encoding/gob"
 	"flag"
@@ -15,7 +16,7 @@ import (
 
 type application struct {
 	Session *scs.SessionManager
-	DB      db.PostgresConn
+	DB      repository.DataBaseRepo
 	DSN     string
 }
 
@@ -39,7 +40,7 @@ func main() {
 		}
 	}(conn)
 
-	app.DB = db.PostgresConn{DB: conn}
+	app.DB = &dbrepo.PostgresDBRepo{DB: conn}
 
 	// get session manager
 	app.Session = getSession()
