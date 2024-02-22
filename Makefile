@@ -5,10 +5,10 @@ createdb:
 	docker exec -it webapp createdb --username="postgres" --owner="postgres" "users"
 
 migratecreate:
-	migrate create -ext sql -dir pkg/db/migrations/ -seq init_schema
+	migrate create -ext sql -dir pkg/repository/migrations/ -seq init_schema
 
 migrateup:
-	 migrate -path pkg/db/migrations/ -database "postgresql://postgres:postgres@localhost:5432/users?sslmode=disable" -verbose up
+	 migrate -path pkg/repository/migrations/ -database "postgresql://postgres:postgres@localhost:5432/users?sslmode=disable" -verbose up
 
 dropdb:
 	docker exec -it postgres dropdb "users"
