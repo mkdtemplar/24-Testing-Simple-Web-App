@@ -16,6 +16,7 @@ func Test_application_routes(t *testing.T) {
 		{route: "/", method: "GET"},
 		{route: "/static/*", method: "GET"},
 		{route: "/login", method: "POST"},
+		{route: "/user/login", method: "GET"},
 	}
 
 	mux := app.routes()
