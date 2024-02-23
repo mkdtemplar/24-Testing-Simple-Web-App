@@ -4,6 +4,7 @@ import (
 	"24-Testing-Simple-Web-App/pkg/data"
 	"24-Testing-Simple-Web-App/pkg/repository"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -22,7 +23,7 @@ var (
 	user     = "postgres"
 	password = "postgres"
 	dbName   = "users_test"
-	port     = "5432"
+	port     = "5435"
 	dsn      = "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC connect_timeout=5"
 )
 
@@ -121,7 +122,7 @@ func Test_pingDB(t *testing.T) {
 }
 
 func TestPostgresDBRepo_InsertUser(t *testing.T) {
-	testUser := data.User{
+	testUser1 := data.User{
 		FirstName: "Admin",
 		LastName:  "User",
 		Email:     "admin@example.com",
@@ -130,14 +131,24 @@ func TestPostgresDBRepo_InsertUser(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	testUser2 := data.User{
+		FirstName: "Jack",
+		LastName:  "User",
+		Email:     "jack@example.com",
+		Password:  "secret",
+		IsAdmin:   1,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 
-	id, err := testRepo.InsertUser(testUser)
+	id1, err := testRepo.InsertUser(testUser1)
+	id2, err := testRepo.InsertUser(testUser2)
 	if err != nil {
 		t.Errorf("insert user returned %s", err.Error())
 	}
 
-	if id != 1 {
-		t.Errorf("inserted user returned wrong id expected 1 but got %d", id)
+	if id1 != 1 || id2 != 2 {
+		t.Errorf("inserted user returned wrong id expected 1 but got %d", id1)
 	}
 }
 
@@ -149,5 +160,109 @@ func TestPostgresDBRepo_AllUsers(t *testing.T) {
 
 	if len(users) < 1 {
 		t.Errorf("expected 1 but got %d", len(users))
+	}
+}
+func TestPostgresDBRepo_GetUser(t *testing.T) {
+	testUser, err := testRepo.GetUser(1)
+	if err != nil {
+		t.Errorf("user with id %d, not found, %s", 1, err)
+	}
+
+	if testUser.ID != 1 {
+		t.Errorf("user with id 1 not found")
+	}
+}
+func TestPostgresDBRepo_GetUserByEmail(t *testing.T) {
+	testUser, err := testRepo.GetUserByEmail("admin@example.com")
+	if err != nil {
+		t.Errorf("error by GetUserByEmail")
+	}
+
+	if testUser.Email != "admin@example.com" {
+		t.Errorf("test for GetUserByEmail failed %s", err)
+	}
+}
+func TestPostgresDBRepo_UpdateUser(t *testing.T) {
+	testUser, _ := testRepo.GetUser(2)
+
+	testUser.FirstName = "ivan"
+	testUser.Email = "ivan@ivan.com"
+
+	err := testRepo.UpdateUser(*testUser)
+	if err != nil {
+		t.Errorf("test for UpdateUser failed %s", err)
+	}
+
+	testUser, _ = testRepo.GetUser(2)
+	if testUser.FirstName != "ivan" || testUser.Email != "ivan@ivan.com" {
+		t.Errorf("test failed for  UpdateUser %s", err)
+	}
+}
+
+func TestPostgresDBRepo_DeleteUser(t *testing.T) {
+	type args struct {
+		id int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr error
+	}{
+		{
+			name:    "Delete user",
+			args:    args{id: 2},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			if err := testRepo.DeleteUser(tt.args.id); !errors.Is(err, tt.wantErr) {
+				t.Errorf("DeleteUser() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			testUser, _ := testRepo.GetUser(tt.args.id)
+
+			if testUser != nil {
+				t.Errorf("DeleteUser() failed want %v, but got %v", nil, testUser)
+			}
+		})
+	}
+}
+
+func TestPostgresDBRepo_ResetPassword(t *testing.T) {
+	type args struct {
+		id       int
+		password string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr error
+	}{
+		{
+			name: "ResetPassword",
+			args: args{
+				id:       1,
+				password: "password",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			if err := testRepo.ResetPassword(tt.args.id, tt.args.password); !errors.Is(err, tt.wantErr) {
+				t.Errorf("ResetPassword() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			user, _ := testRepo.GetUser(tt.args.id)
+			matches, err := user.PasswordMatches(tt.args.password)
+			if err != nil {
+				t.Error(err)
+			}
+			if !matches {
+				t.Errorf("paswword do not match %s", err)
+			}
+		})
 	}
 }
