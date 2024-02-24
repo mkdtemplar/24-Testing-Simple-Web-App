@@ -1,3 +1,5 @@
+//go:build integration
+
 package dbrepo
 
 import (
@@ -264,5 +266,22 @@ func TestPostgresDBRepo_ResetPassword(t *testing.T) {
 				t.Errorf("paswword do not match %s", err)
 			}
 		})
+	}
+}
+func TestPostgresDBRepo_InsertUserImage(t *testing.T) {
+	image := data.UserImage{
+		UserID:    1,
+		FileName:  "test.jpg",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	newId, err := testRepo.InsertUserImage(image)
+	if err != nil {
+		t.Errorf("inserting image failed %s", err)
+	}
+
+	if newId < 1 {
+		t.Errorf("Test failed %s", err)
 	}
 }

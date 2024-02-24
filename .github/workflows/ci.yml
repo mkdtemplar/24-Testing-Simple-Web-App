@@ -56,4 +56,4 @@ jobs:
       - name: Test
         run: |
           cd cmd/web
-          go test -v
+          go test -v -tags=integration ./...
