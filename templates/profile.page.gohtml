@@ -6,6 +6,17 @@
             <div class="col">
                 <h1 class="mt-3">User profile</h1>
                 <hr>
+                {{if ne .User.ProfilePic.FileName ""}}
+                    <img src="/static/img/{{.User.ProfilePic.FileName}}" class="img-fluid" style="max-width: 300px" alt="profile">
+                    {{else}}
+                        <p>No profile picture uploaded yet</p>
+                        {{end}}
+                <hr>
+                <form action="/user/upload-profile-pic" method="post" enctype="multipart/form-data">
+                    <label for="fromFile" class="form-label">Choose an image</label>
+                    <input class="form-control" type="file" name="image" id="fromFile" accept="image/png, image/gif, image/jpeg">
+                    <input class="btn btn-primary mt-3" type="submit" value="Upload">
+                </form>
             </div>
         </div>
     </div>
