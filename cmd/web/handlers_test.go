@@ -232,18 +232,24 @@ func Test_application_Login(t *testing.T) {
 }
 
 func Test_application_UploadFiles(t *testing.T) {
+	// set up pipes
 	pr, pw := io.Pipe()
 
+	// create a new writer, of type *io.Writer
 	writer := multipart.NewWriter(pw)
 
+	// create a waitgroup, and add 1 to it
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
+	// simulate uploading a file using a goroutine and our writer
 	go simulatePNGUpload("./testdata/img.png", *writer, t, wg)
 
+	// read from the pipe which receives data
 	request := httptest.NewRequest("POST", "/", pr)
 	request.Header.Add("Content-Type", writer.FormDataContentType())
 
+	// call app.UploadFiles
 	uploadedFiles, err := app.UploadFiles(request, "./testdata/uploads/")
 	if err != nil {
 		t.Error(err)
@@ -255,7 +261,7 @@ func Test_application_UploadFiles(t *testing.T) {
 	}
 
 	// clean up
-	//_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName))
+	_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName))
 
 	wg.Wait()
 }
