@@ -249,12 +249,15 @@ func Test_application_UploadFiles(t *testing.T) {
 		t.Error(err)
 	}
 
+	// perform our tests
 	if _, err := os.Stat(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName)); os.IsNotExist(err) {
-		t.Errorf("expect file to exists %s", err.Error())
+		t.Errorf("expected file to exist: %s", err.Error())
 	}
 
+	// clean up
 	_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFiles[0].OriginalFileName))
 
+	wg.Wait()
 }
 
 func simulatePNGUpload(fileToUpload string, writer multipart.Writer, t *testing.T, wg *sync.WaitGroup) {
