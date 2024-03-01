@@ -34,6 +34,13 @@ func Test_application_authenticate(t *testing.T) {
 				expectedStatusCode: http.StatusBadRequest,
 			},
 		},
+		{
+			args: args{
+				name:               "Empty JSON",
+				requestBody:        `{}`,
+				expectedStatusCode: http.StatusUnauthorized,
+			},
+		},
 	}
 	for _, tt := range tests {
 		var reader io.Reader
