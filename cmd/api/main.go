@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -48,10 +49,10 @@ func main() {
 
 	log.Printf("Starting APi on port %s\n", port)
 
-	//err = http.ListenAndServe(fmt.Sprintf(":%s", port), app.routes())
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	app.routes()
+	err = app.routes().Run(fmt.Sprintf("localhost:%s", port))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 }
