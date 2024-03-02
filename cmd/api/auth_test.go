@@ -25,6 +25,7 @@ func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
 		setHeader     bool
 	}{
 		{name: "valid", token: fmt.Sprintf("Bearer %s", tokens.Token), errorExpected: false, setHeader: true},
+		{name: "valid expired", token: fmt.Sprintf("Bearer %s", expiredToken), errorExpected: true, setHeader: true},
 	}
 
 	for _, tt := range tests {
@@ -37,8 +38,12 @@ func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		_, _, err := app.getTokenFromHeaderAndVerify(rr, req)
-		if err != nil {
-			t.Errorf("%s: did not expect an eroro but got one %s", tt.name, err.Error())
+		if err != nil && !tt.errorExpected {
+			t.Errorf("%s: did not expect an eroror but got one %s", tt.name, err.Error())
+		}
+
+		if err == nil && tt.errorExpected {
+			t.Errorf("%s expected an error but not get one", tt.name)
 		}
 	}
 }
