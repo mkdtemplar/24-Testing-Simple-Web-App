@@ -21,15 +21,15 @@ func (app *application) enableCORS(next http.Handler) gin.HandlerFunc {
 
 }
 
-func (app *application) authRequired(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _, err := app.getTokenFromHeaderAndVerify(w, r)
+func (app *application) authRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, _, err := app.getTokenFromHeaderAndVerify(c.Writer, c.Request)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
+			c.Writer.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		c.Next()
 		return
-	})
+	}
 }

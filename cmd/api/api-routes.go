@@ -12,7 +12,7 @@ func (app *application) routes() *gin.Engine {
 
 	mux.POST("/auth", app.authenticate)
 	mux.POST("/refresh-token", app.refresh)
-
+	mux.Use(app.authRequired())
 	users := mux.Group("/users")
 	{
 		mux.Use(cors)

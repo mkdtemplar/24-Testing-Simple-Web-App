@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -14,24 +13,19 @@ func Test_application_routes(t *testing.T) {
 		{route: "/refresh-token", method: "POST"},
 	}
 
-	var output []struct {
-		route  string
-		method string
-	}
 	mux := app.routes()
+	exists := make(map[string]bool)
 
 	for _, routeInfo := range mux.Routes() {
-		for _, tt := range tests {
-			if routeInfo.Path == tt.route && routeInfo.Method == tt.method {
-				output = append(output, struct {
-					route  string
-					method string
-				}{route: routeInfo.Path, method: routeInfo.Method})
-			}
+		key := routeInfo.Path + " " + routeInfo.Method
+		exists[key] = true
+	}
+
+	for _, tt := range tests {
+		key := tt.route + " " + tt.method
+		if !exists[key] {
+			t.Errorf("%s: not exists", tt.route)
 		}
 	}
 
-	if reflect.DeepEqual(tests, output) == false {
-		t.Errorf("%s: failed", "routes()")
-	}
 }

@@ -96,11 +96,29 @@ func (app *application) refresh(c *gin.Context) {
 }
 
 func (app *application) allUsers(c *gin.Context) {
-
+	users, err := app.DB.AllUsers()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"All users": users})
+	return
 }
 
 func (app *application) getUser(c *gin.Context) {
+	userId, err := strconv.Atoi(c.Param("UserID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
 
+	user, err := app.DB.GetUser(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"User": user})
 }
 
 func (app *application) updateUser(c *gin.Context) {
