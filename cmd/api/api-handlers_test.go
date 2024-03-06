@@ -59,7 +59,7 @@ func Test_application_authenticate(t *testing.T) {
 }
 
 func SetupServer() *gin.Engine {
-	r := gin.New()
-	gin.SetMode(gin.ReleaseMode)
+	r := gin.Default()
+	gin.SetMode(gin.TestMode)
 	return r
 }

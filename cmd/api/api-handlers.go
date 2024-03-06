@@ -1,6 +1,7 @@
 package main
 
 import (
+	"24-Testing-Simple-Web-App/pkg/data"
 	"errors"
 	"net/http"
 	"strconv"
@@ -106,7 +107,7 @@ func (app *application) allUsers(c *gin.Context) {
 }
 
 func (app *application) getUser(c *gin.Context) {
-	userId, err := strconv.Atoi(c.Param("UserID"))
+	userId, err := strconv.Atoi(c.Param("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
 		return
@@ -122,7 +123,13 @@ func (app *application) getUser(c *gin.Context) {
 }
 
 func (app *application) updateUser(c *gin.Context) {
-
+	var user data.User
+	err := app.DB.UpdateUser(user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+	c.JSON(http.StatusNoContent, gin.H{"User updated": user})
 }
 
 func (app *application) deleteUser(c *gin.Context) {

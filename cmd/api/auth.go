@@ -4,10 +4,10 @@ import (
 	"24-Testing-Simple-Web-App/pkg/data"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -26,14 +26,14 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func (app *application) getTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error) {
+func (app *application) getTokenFromHeaderAndVerify(c *gin.Context) (string, *Claims, error) {
 	// we expect our authorization header to look like this:
 	// Bearer <token>
 	// add a header
-	w.Header().Add("Vary", "Authorization")
+	c.Writer.Header().Add("Vary", "Authorization")
 
 	// get the authorization header
-	authHeader := r.Header.Get("Authorization")
+	authHeader := c.Request.Header.Get("Authorization")
 
 	// sanity check
 	if authHeader == "" {

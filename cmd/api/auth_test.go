@@ -3,9 +3,10 @@ package main
 import (
 	"24-Testing-Simple-Web-App/pkg/data"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
@@ -37,18 +38,19 @@ func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
 	}
 
 	for _, e := range tests {
+		r := SetupServer()
+		rr, _ := gin.CreateTestContext(httptest.NewRecorder())
 		if e.issuer != app.Domain {
 			app.Domain = e.issuer
 			tokens, _ = app.generateTokenPairs(&testUser)
 		}
-		req, _ := http.NewRequest("GET", "/", nil)
+		r.GET("/", nil)
+		//req, _ := http.NewRequest("GET", "/", nil)
 		if e.setHeader {
-			req.Header.Set("Authorization", e.token)
+			rr.Writer.Header().Set("Authorization", e.token)
 		}
 
-		rr := httptest.NewRecorder()
-
-		_, _, err := app.getTokenFromHeaderAndVerify(rr, req)
+		_, _, err := app.getTokenFromHeaderAndVerify(rr)
 		if err != nil && !e.errorExpected {
 			t.Errorf("%s: did not expect error, but got one - %s", e.name, err.Error())
 		}

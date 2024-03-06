@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (app *application) enableCORS(next http.Handler) gin.HandlerFunc {
+func (app *application) enableCORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8090")
 		if c.Request.Method == "OPTIONS" {
@@ -15,7 +15,7 @@ func (app *application) enableCORS(next http.Handler) gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-CSRF-Token, Authorization")
 			return
 		} else {
-			next.ServeHTTP(c.Writer, c.Request)
+			c.Next()
 		}
 	}
 
@@ -23,13 +23,12 @@ func (app *application) enableCORS(next http.Handler) gin.HandlerFunc {
 
 func (app *application) authRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, _, err := app.getTokenFromHeaderAndVerify(c.Writer, c.Request)
+		_, _, err := app.getTokenFromHeaderAndVerify(c)
 		if err != nil {
 			c.Writer.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		c.Next()
-		return
 	}
 }
