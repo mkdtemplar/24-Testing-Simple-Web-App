@@ -39,6 +39,7 @@ func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
 
 	for _, e := range tests {
 		r := SetupServer()
+		r.Use(app.enableCORS())
 		rr, _ := gin.CreateTestContext(httptest.NewRecorder())
 		if e.issuer != app.Domain {
 			app.Domain = e.issuer

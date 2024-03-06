@@ -42,7 +42,7 @@ func (app *application) authenticate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Token Pairs": tokenPairs})
+	c.JSON(http.StatusOK, tokenPairs)
 }
 
 func (app *application) refresh(c *gin.Context) {

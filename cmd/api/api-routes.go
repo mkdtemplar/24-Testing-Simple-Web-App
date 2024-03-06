@@ -13,8 +13,9 @@ func (app *application) routes() *gin.Engine {
 
 	mux.POST("/auth", app.authenticate)
 	mux.POST("/refresh-token", app.refresh)
-	users := mux.Group("/users", app.authRequired())
+	users := mux.Group("/users")
 	{
+		users.Use(app.authRequired())
 		users.GET("/", app.allUsers)
 		users.GET("/:userID", app.getUser)
 		users.DELETE("/:userID", app.deleteUser)
