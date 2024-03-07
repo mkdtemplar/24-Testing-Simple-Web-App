@@ -72,6 +72,46 @@ func Test_application_UserHandlers(t *testing.T) {
 		{name: "DeleteUser", method: "DELETE", json: "", paramID: "1", handler: app.deleteUser, expectedStatusCode: http.StatusNoContent},
 		{name: "getUser valid", method: "GET", json: "", paramID: "1", handler: app.getUser, expectedStatusCode: http.StatusOK},
 		{name: "getUser invalid", method: "GET", json: "", paramID: "100", handler: app.getUser, expectedStatusCode: http.StatusBadRequest},
+		{
+			name:               "updateUser valid",
+			method:             "PATCH",
+			json:               `{"id": 1, "first_name": "Administrator", "last_name": "User", "email": "admin@example.com"}`,
+			paramID:            "",
+			handler:            app.updateUser,
+			expectedStatusCode: http.StatusNoContent,
+		},
+		{
+			name:               "updateUser invalid",
+			method:             "PATCH",
+			json:               `{"id": 100, "first_name": "Administrator", "last_name": "User", "email": "admin@example.com"}`,
+			paramID:            "",
+			handler:            app.updateUser,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "updateUser invalid json",
+			method:             "PATCH",
+			json:               `{"id": 1, first_name: "Administrator", "last_name": "User", "email": "admin@example.com"}`,
+			paramID:            "",
+			handler:            app.updateUser,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "InsertUser valid",
+			method:             "PUT",
+			json:               `{"first_name"": "Jack", "last_name": "Smith", "email": "jack@example.com"}`,
+			paramID:            "",
+			handler:            app.insertUser,
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "InsertUser invalid",
+			method:             "PUT",
+			json:               `{"foo": "bar",first_name"": "Jack", "last_name": "Smith", "email": "jack@example.com"}`,
+			paramID:            "",
+			handler:            app.insertUser,
+			expectedStatusCode: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
@@ -90,6 +130,22 @@ func Test_application_UserHandlers(t *testing.T) {
 				return
 			case "etUser invalid":
 				r.GET("/", tests[3].handler)
+				return
+			case "updateUser valid":
+				r.PATCH("/", tests[4].handler)
+				return
+			case "updateUser invalid":
+				r.PATCH("/", tests[4].handler)
+				return
+			case "updateUser invalid json":
+				r.PATCH("/", tests[4].handler)
+				return
+			case "InsertUser valid":
+				r.PUT("/", tests[5].handler)
+				return
+			case "InsertUser invalid":
+				r.PUT("/", tests[5].handler)
+				return
 			}
 
 			req = httptest.NewRequest(tt.method, "/", nil)
