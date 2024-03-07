@@ -19,7 +19,7 @@ func (app *application) routes() *gin.Engine {
 		users.GET("/", app.allUsers)
 		users.GET("/:userID", app.getUser)
 		users.DELETE("/:userID", app.deleteUser)
-		users.PUT("/", app.insertUser)
+		users.POST("/", app.insertUser)
 		users.PATCH("/", app.updateUser)
 	}
 

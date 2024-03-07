@@ -194,13 +194,13 @@ func (m *PostgresDBRepo) InsertUser(user data.User) (int, error) {
 	}
 
 	var newID int
-	stmt := `insert into users (email, first_name, last_name, password, is_admin, created_at, updated_at)
+	stmt := `insert into users (first_name, last_name, email, password, is_admin, created_at, updated_at)
 		values ($1, $2, $3, $4, $5, $6, $7) returning id`
 
 	err = m.DB.QueryRowContext(ctx, stmt,
-		user.Email,
 		user.FirstName,
 		user.LastName,
+		user.Email,
 		hashedPassword,
 		user.IsAdmin,
 		time.Now(),

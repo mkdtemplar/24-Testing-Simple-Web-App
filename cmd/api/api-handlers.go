@@ -3,6 +3,7 @@ package main
 import (
 	"24-Testing-Simple-Web-App/pkg/data"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -133,9 +134,34 @@ func (app *application) updateUser(c *gin.Context) {
 }
 
 func (app *application) deleteUser(c *gin.Context) {
+	userId, err := strconv.Atoi(c.Param("userID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+
+	err = app.DB.DeleteUser(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, gin.H{"Message": fmt.Sprintf("User with %d deleted from database", userId)})
 
 }
 
 func (app *application) insertUser(c *gin.Context) {
+	var user data.User
+	err := c.ShouldBindJSON(&user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
+	insertedUserId, err := app.DB.InsertUser(user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		return
+	}
 
+	c.JSON(http.StatusOK, gin.H{"Message": fmt.Sprintf("New user with %d inserted in database", insertedUserId)})
 }

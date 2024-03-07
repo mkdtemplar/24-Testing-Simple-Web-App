@@ -30,7 +30,7 @@ func (app *application) getTokenFromHeaderAndVerify(c *gin.Context) (string, *Cl
 	// we expect our authorization header to look like this:
 	// Bearer <token>
 	// add a header
-	//c.Writer.Header().Set("Vary", "Authorization")
+	//c.Writer.Header().Set("Authorization", "Authorization")
 
 	// get the authorization header
 	authHeader := c.GetHeader("Authorization")

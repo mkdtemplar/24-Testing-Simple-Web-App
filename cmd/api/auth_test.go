@@ -45,8 +45,8 @@ func Test_application_getTokenFromHeaderAndVerify(t *testing.T) {
 			app.Domain = e.issuer
 			tokens, _ = app.generateTokenPairs(&testUser)
 		}
-		r.GET("/", nil)
-		//req, _ := http.NewRequest("GET", "/", nil)
+		r.POST("/", app.authenticate)
+		//req, _ := http.NewRequest("POST", "/", nil)
 		if e.setHeader {
 			rr.Writer.Header().Set("Authorization", e.token)
 		}
