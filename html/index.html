@@ -75,8 +75,12 @@
     let refreshTokenDisplay = document.getElementById("refresh");
     let logoutBtn = document.getElementById("logout");
 
+    document.addEventListener("DOMContentLoaded", function () {
+        refreshTokens()
+    })
 
-    login.addEventListener("click", function() {
+
+    loginBtn.addEventListener("click", function() {
         const payload = {
             email: document.getElementById("email").value,
             password: document.getElementById("password").value,
@@ -104,6 +108,26 @@
                 alert(error);
             })
     })
+    
+    function refreshTokens() {
+        const requestOptions =  {
+          method: "GET",
+          credentials: "include",
+        }
+
+        fetch(`/web/refresh-token`, requestOptions)
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.access_token) {
+                    access_token = data.access_token;
+                    refresh_token = data.refresh_token;
+                    setUI(true);
+                } else {
+                    setUI(false)
+                }
+            })
+            .catch(error => alert(error))
+    }
 
     function setUI(loggedIn) {
         if (loggedIn) {
