@@ -1,31 +1,48 @@
 package main
 
 import (
+	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func Test_application_routes(t *testing.T) {
-	tests := []struct {
+func Test_app_routes(t *testing.T) {
+	var registered = []struct {
 		route  string
 		method string
 	}{
-		{route: "/auth", method: "POST"},
-		{route: "/refresh-token", method: "POST"},
+		{"/auth", "POST"},
+		{"/refresh-token", "POST"},
+		{"/users/", "GET"},
+		{"/users/{userID}", "GET"},
+		{"/users/{userID}", "DELETE"},
+		{"/users/", "PATCH"},
+		{"/users/", "PUT"},
 	}
 
 	mux := app.routes()
-	exists := make(map[string]bool)
 
-	for _, routeInfo := range mux.Routes() {
-		key := routeInfo.Path + " " + routeInfo.Method
-		exists[key] = true
-	}
+	chiRoutes := mux.(chi.Routes)
 
-	for _, tt := range tests {
-		key := tt.route + " " + tt.method
-		if !exists[key] {
-			t.Errorf("%s: not exists", tt.route)
+	for _, route := range registered {
+		// check to see if the route exists
+		if !routeExists(route.route, route.method, chiRoutes) {
+			t.Errorf("route %s is not registered", route.route)
 		}
 	}
+}
 
+func routeExists(testRoute, testMethod string, chiRoutes chi.Routes) bool {
+	found := false
+
+	_ = chi.Walk(chiRoutes, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		if strings.EqualFold(method, testMethod) && strings.EqualFold(route, testRoute) {
+			found = true
+		}
+		return nil
+	})
+
+	return found
 }

@@ -3,57 +3,73 @@ package main
 import (
 	"24-Testing-Simple-Web-App/pkg/data"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Credentials is the type used to unmarshal a JSON payload
+// during authentication.
 type Credentials struct {
-	UserName string `json:"email"`
+	Username string `json:"email"`
 	Password string `json:"password"`
 }
 
-func (app *application) authenticate(c *gin.Context) {
+// authenticate is the handler used to try to authenticate a user, and
+// send them a JWT token if successful.
+func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
-	if err := c.BindJSON(&creds); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"Message": err})
-		return
-	}
 
-	user, err := app.DB.GetUserByEmail(creds.UserName)
+	// read a json payload
+	err := app.readJSON(w, r, &creds)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"Message": err})
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
+	// look up the user by email address
+	user, err := app.DB.GetUserByEmail(creds.Username)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
+
+	// check password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"Message": err})
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	tokenPairs, err := app.generateTokenPairs(user)
+	// generate tokens
+	tokenPairs, err := app.generateTokenPair(user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"Message": err})
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	c.JSON(http.StatusOK, tokenPairs)
+	// send token to user
+	_ = app.writeJSON(w, http.StatusOK, tokenPairs)
 }
 
-func (app *application) refresh(c *gin.Context) {
-	err := c.Request.ParseForm()
+// refresh is the handler called to request a new token pair, when
+// the jwt token has expired. We expect the refresh token to come
+// from a POST request. We validate it, look up the user in the db,
+// and if everything is good we send back a new token pair
+// as JSON. We also set an http only, secure cookie with the refresh
+// token stored inside.
+func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
 	if err != nil {
-		c.Writer.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	refreshToken := c.Request.Form.Get("refresh_token")
+	refreshToken := r.Form.Get("refresh_token")
 	claims := &Claims{}
 
 	_, err = jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
@@ -61,107 +77,126 @@ func (app *application) refresh(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
 	if time.Unix(claims.ExpiresAt.Unix(), 0).Sub(time.Now()) > 30*time.Second {
-		c.JSON(http.StatusTooEarly, gin.Error{
-			Err: errors.New("refresh token not required to be renewed"),
-		})
+		app.errorJSON(w, errors.New("refresh token does not need renewed yet"), http.StatusTooEarly)
 		return
 	}
 
-	userId, err := strconv.Atoi(claims.Subject)
+	// get the user id from the claims
+	userID, err := strconv.Atoi(claims.Subject)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	user, err := app.DB.GetUser(userId)
+	user, err := app.DB.GetUser(userID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{
-			Err: errors.New("unknown user"),
-		})
+		app.errorJSON(w, errors.New("unknown user"), http.StatusBadRequest)
 		return
 	}
 
-	tokenPairs, err := app.generateTokenPairs(user)
+	tokenPairs, err := app.generateTokenPair(user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-	c.SetCookie("__Host-refresh_token", tokenPairs.RefreshToken, int(refreshTokenExpiry.Seconds()),
-		"/", "localhost", true, true)
 
-	c.JSON(http.StatusOK, tokenPairs)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "__Host-refresh_token",
+		Path:     "/",
+		Value:    tokenPairs.RefreshToken,
+		Expires:  time.Now().Add(refreshTokenExpiry),
+		MaxAge:   int(refreshTokenExpiry.Seconds()),
+		SameSite: http.SameSiteStrictMode,
+		Domain:   "localhost",
+		HttpOnly: true,
+		Secure:   true,
+	})
+
+	_ = app.writeJSON(w, http.StatusOK, tokenPairs)
 }
 
-func (app *application) allUsers(c *gin.Context) {
+// allUsers returns a list of all users as JSON
+func (app *application) allUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := app.DB.AllUsers()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"All users": users})
-	return
+
+	_ = app.writeJSON(w, http.StatusOK, users)
 }
 
-func (app *application) getUser(c *gin.Context) {
-	userId, err := strconv.Atoi(c.Param("userID"))
+// getUser returns one user as JSON
+func (app *application) getUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	user, err := app.DB.GetUser(userId)
+	user, err := app.DB.GetUser(userID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"User": user})
+	_ = app.writeJSON(w, http.StatusOK, user)
 }
 
-func (app *application) updateUser(c *gin.Context) {
+// updateUser updates a user from a JSON payload, and returns just a header
+func (app *application) updateUser(w http.ResponseWriter, r *http.Request) {
 	var user data.User
-	err := app.DB.UpdateUser(user)
+	err := app.readJSON(w, r, &user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-	c.JSON(http.StatusNoContent, gin.H{"User updated": user})
+
+	err = app.DB.UpdateUser(user)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func (app *application) deleteUser(c *gin.Context) {
-	userId, err := strconv.Atoi(c.Param("userID"))
+// deleteUser deletes one user based on ID in URL, and returns a header
+func (app *application) deleteUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := strconv.Atoi(chi.URLParam(r, "userID"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	err = app.DB.DeleteUser(userId)
+	err = app.DB.DeleteUser(userID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	c.JSON(http.StatusNoContent, gin.H{"Message": fmt.Sprintf("User with %d deleted from database", userId)})
-
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func (app *application) insertUser(c *gin.Context) {
+// insertUser inserts a user using a JSON payload, and returns a header
+func (app *application) insertUser(w http.ResponseWriter, r *http.Request) {
 	var user data.User
-	err := c.ShouldBindJSON(&user)
+	err := app.readJSON(w, r, &user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
-		return
-	}
-	insertedUserId, err := app.DB.InsertUser(user)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.Error{Err: err})
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Message": fmt.Sprintf("New user with %d inserted in database", insertedUserId)})
+	_, err = app.DB.InsertUser(user)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

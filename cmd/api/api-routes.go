@@ -1,35 +1,41 @@
 package main
 
 import (
-	"github.com/gin-contrib/static"
-	"github.com/gin-gonic/gin"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-func (app *application) routes() *gin.Engine {
-	mux := gin.New()
+func (app *application) routes() http.Handler {
+	mux := chi.NewRouter()
 
-	mux.Use(gin.Recovery())
-	mux.Use(app.enableCORS())
-	mux.Use(static.Serve("/", static.LocalFile("./html/", false)))
-	web := mux.Group("/web")
-	{
-		web.Use(app.authRequired())
-		web.POST("/auth", app.authenticate)
+	// register middleware
+	mux.Use(middleware.Recoverer)
+	mux.Use(app.enableCORS)
+
+	mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./html/"))))
+
+	mux.Route("/web", func(mux chi.Router) {
+		mux.Post("/auth", app.authenticate)
 		// /refresh-token
 		// /logout
-	}
-	mux.POST("/auth", app.authenticate)
-	mux.POST("/refresh-token", app.refresh)
-	users := mux.Group("/users")
-	{
-		users.Use(app.authRequired())
-		users.GET("/", app.allUsers)
-		users.GET("/:userID", app.getUser)
-		users.DELETE("/:userID", app.deleteUser)
-		users.PUT("/", app.insertUser)
-		users.PATCH("/", app.updateUser)
+	})
 
-	}
+	// authentication routes - auth handler, refresh
+	mux.Post("/auth", app.authenticate)
+	mux.Post("/refresh-token", app.refresh)
+
+	// protected routes
+	mux.Route("/users", func(mux chi.Router) {
+		mux.Use(app.authRequired)
+
+		mux.Get("/", app.allUsers)
+		mux.Get("/{userID}", app.getUser)
+		mux.Delete("/{userID}", app.deleteUser)
+		mux.Put("/", app.insertUser)
+		mux.Patch("/", app.updateUser)
+	})
 
 	return mux
 }
