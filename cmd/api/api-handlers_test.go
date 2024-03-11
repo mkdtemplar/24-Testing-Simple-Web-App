@@ -184,3 +184,86 @@ func Test_app_userHandlers(t *testing.T) {
 		}
 	}
 }
+
+func Test_application_refreshUsingCookie(t *testing.T) {
+	testUser := data.User{
+		ID:        1,
+		FirstName: "Admin",
+		LastName:  "User",
+		Email:     "admin@example.com",
+	}
+
+	tokens, _ := app.generateTokenPair(&testUser)
+
+	testCookie := &http.Cookie{
+		Name:     "_Host-refresh_token",
+		Value:    tokens.RefreshToken,
+		Path:     "/",
+		Domain:   "localhost",
+		Expires:  time.Now().Add(refreshTokenExpiry),
+		MaxAge:   int(refreshTokenExpiry.Seconds()),
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+	}
+
+	badCookie := &http.Cookie{
+		Name:     "_Host-refresh_token",
+		Value:    "badstring",
+		Path:     "/",
+		Domain:   "localhost",
+		Expires:  time.Now().Add(refreshTokenExpiry),
+		MaxAge:   int(refreshTokenExpiry.Seconds()),
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+	}
+
+	var tests = []struct {
+		name               string
+		addCookie          bool
+		cookie             *http.Cookie
+		expectedStatusCode int
+	}{
+		{name: "valid cookie", addCookie: true, cookie: testCookie, expectedStatusCode: http.StatusOK},
+		{name: "unvalid cookie", addCookie: true, cookie: badCookie, expectedStatusCode: http.StatusBadRequest},
+		{name: "no cookie", addCookie: false, cookie: nil, expectedStatusCode: http.StatusUnauthorized},
+	}
+
+	for _, tt := range tests {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/", nil)
+		if tt.addCookie {
+			req.AddCookie(tt.cookie)
+		}
+
+		handler := http.HandlerFunc(app.refreshUsingCookie)
+		handler.ServeHTTP(rr, req)
+		if tt.expectedStatusCode != rr.Code {
+			t.Errorf("%s: got %d but expected %d", tt.name, rr.Code, tt.expectedStatusCode)
+		}
+	}
+}
+
+func Test_application_deleteRefreshCookie(t *testing.T) {
+
+	req := httptest.NewRequest("GET", "/logout", nil)
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(app.deleteRefreshCookie)
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusAccepted {
+		t.Errorf("%s: got %d but expected %d", "deleteRefreshCookie", rr.Code, http.StatusAccepted)
+	}
+
+	foundCookie := false
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "_Host-refresh_token" {
+			foundCookie = true
+		}
+	}
+
+	if !foundCookie {
+		t.Errorf("%s not found", "_Host-refresh-token")
+	}
+}

@@ -79,6 +79,20 @@
         refreshTokens()
     })
 
+    let refreshRunning = false
+    let refreshTime = new Date()
+    let secondsRemaining = (600 - refreshTime.getSeconds()) * 1000
+
+    function autoRefresh() {
+        if (!refreshRunning) {
+            setTimeout(function () {
+                if (access_token !== "") {
+                    setInterval(refreshTokens, 10 * 60 * 1000) // every 10 minutes
+                }
+            }, secondsRemaining)
+        }
+        refreshRunning = true
+    }
 
     loginBtn.addEventListener("click", function() {
         const payload = {
@@ -102,10 +116,32 @@
                     access_token = data.access_token;
                     refresh_token = data.refresh_token;
                     setUI(true);
+                    autoRefresh()
                 }
             })
             .catch(error => {
                 alert(error);
+            })
+    })
+
+    userBtn.addEventListener("click",function () {
+        const myHeaders = new Headers()
+        myHeaders.append("Content-Type", "application/json")
+        myHeaders.append("Authorization", "Bearer " + access_token)
+
+        const requestOptions = {
+            method: "GET",
+            headers: myHeaders,
+        }
+        fetch("/users/1", requestOptions)
+            .then((response) => response.json())
+            .then((data) => {
+                if (data) {
+                    userOutput.innerHTML = JSON.stringify(data, undefined, 4)
+                }
+            })
+            .catch(err => {
+                userOutput.innerHTML = err
             })
     })
     
@@ -122,6 +158,7 @@
                     access_token = data.access_token;
                     refresh_token = data.refresh_token;
                     setUI(true);
+                    autoRefresh()
                 } else {
                     setUI(false)
                 }
@@ -146,6 +183,18 @@
             refreshTokenDisplay.innerHTML = "No refresh token!";
         }
     }
+
+    logoutBtn.addEventListener("click", function () {
+        access_token = ""
+        refresh_token = ""
+        fetch("/web/logout", {method: "GET"})
+            .then(response => {
+                setUI(false)
+            })
+            .catch(err => {
+                userOutput.innerHTML = err
+            })
+    })
 
 </script>
 
