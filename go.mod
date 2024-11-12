@@ -5,8 +5,7 @@ go 1.23
 require (
 	github.com/alexedwards/scs/v2 v2.8.0
 	github.com/go-chi/chi/v5 v5.1.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/ory/dockertest/v3 v3.10.0
