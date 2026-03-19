@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/jackc/pgconn v1.14.3
