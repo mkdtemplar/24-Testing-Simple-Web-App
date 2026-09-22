@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:latest
-    restart: always
+    restart: no
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
